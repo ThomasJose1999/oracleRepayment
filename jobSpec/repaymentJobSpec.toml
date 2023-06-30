@@ -1,0 +1,47 @@
+type = "directrequest"
+schemaVersion = 1
+name = "repaymentdata"
+externalJobID = "6c35e369-2535-4139-9dbe-5c39a55f9c70"
+forwardingAllowed = false
+maxTaskDuration = "0s"
+contractAddress = "0x1dfE393C53be9b03444Cb90Dc427efE968D61304"
+minContractPaymentLinkJuels = "0"
+observationSource = """
+    decode_log   [type=ethabidecodelog
+                  abi="OracleRequest(bytes32 indexed specId, address requester, bytes32 requestId, uint256 payment, address callbackAddr, bytes4 callbackFunctionId, uint256 cancelExpiration, uint256 dataVersion, bytes data)"
+                  data="$(jobRun.logData)"
+                  topics="$(jobRun.logTopics)"]
+
+    decode_cbor  [type=cborparse data="$(decode_log.data)"]
+    
+    
+    decode_log -> decode_cbor -> fetch
+     fetch  [type=bridge name="demobridge" requestData="{\\"id\\": $(jobSpec.externalJobID), \\"data\\": { \\"loanId\\": $(decode_cbor.loanId)}}"]
+    fetch -> parse_loanId
+    fetch -> parse_stage2FinanceFee
+    fetch -> parse_penaltyCommitmentFee
+    fetch -> parse_penaltyFinanceFee
+    fetch -> parse_newrepaymentAmount
+
+    parse_loanId               [type=jsonparse path="data,loanId" data="$(fetch)"]
+    parse_stage2FinanceFee                 [type=jsonparse path="data,stage2FinanceFee" data="$(fetch)"]
+    parse_penaltyCommitmentFee           [type=jsonparse path="data,penaltyCommitmentFee" data="$(fetch)"]
+    parse_penaltyFinanceFee        [type=jsonparse path="data,penaltyFinanceFee" data="$(fetch)"]
+    parse_newrepaymentAmount        [type=jsonparse path="data,newrepaymentAmount" data="$(fetch)"]
+
+    parse_loanId -> encode_mwr
+    parse_stage2FinanceFee -> encode_mwr
+    parse_penaltyCommitmentFee -> encode_mwr
+    parse_penaltyFinanceFee -> encode_mwr
+    parse_newrepaymentAmount -> encode_mwr
+
+    encode_mwr   [type=ethabiencode abi="(bytes32 requestId, string loanId, uint256 stage2FinanceFee, uint256 penaltyCommitmentFee, uint256 penaltyFinanceFee, uint256 newrepaymentAmount)" data="{ \\"requestId\\": $(decode_log.requestId), \\"loanId\\": $(parse_loanId), \\"stage2FinanceFee\\": $(parse_stage2FinanceFee), \\"penaltyCommitmentFee\\": $(parse_penaltyCommitmentFee), \\"penaltyFinanceFee\\": $(parse_penaltyFinanceFee), \\"newrepaymentAmount\\": $(parse_newrepaymentAmount)}"]
+
+    encode_tx    [type=ethabiencode
+                  abi="fulfillOracleRequest2(bytes32 requestId, uint256 payment, address callbackAddress, bytes4 callbackFunctionId, uint256 expiration, bytes calldata data)"
+                  data="{\\"requestId\\": $(decode_log.requestId), \\"payment\\": $(decode_log.payment), \\"callbackAddress\\": $(decode_log.callbackAddr), \\"callbackFunctionId\\": $(decode_log.callbackFunctionId), \\"expiration\\": $(decode_log.cancelExpiration), \\"data\\": $(encode_mwr)}"
+                 ]
+    submit_tx    [type=ethtx to="0x1dfE393C53be9b03444Cb90Dc427efE968D61304" data="$(encode_tx)"]
+
+    encode_mwr -> encode_tx -> submit_tx
+"""

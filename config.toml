@@ -1,0 +1,18 @@
+[Log]
+Level = 'warn'
+
+[WebServer]
+AllowOrigins = '\*'
+SecureCookies = false
+
+[WebServer.TLS]
+HTTPSPort = 0
+
+[[EVM]]
+ChainID = '11155111'
+
+[[EVM.Nodes]]
+Name = 'Sepolia'
+WSURL = 'wss://sepolia.infura.io/ws/v3/faa1104059054173a73d4f9252364e81'
+HTTPURL = 'https://sepolia.infura.io/v3/faa1104059054173a73d4f9252364e81'
+
