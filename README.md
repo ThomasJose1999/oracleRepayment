@@ -14,6 +14,8 @@ change .chainlink-sepolia in the commands to the working folder pwd
 
 ### add job in the oracle with the jobspec and change the contract address in the jobspec to address of the operator
 
+### add repayment consumer contract as the admin of the records contract
+
 ### call request repayment data of the repayment consumer contract note that add the job id with out "-"
 
 for further details checkout https://docs.chain.link/chainlink-nodes/v1/fulfilling-requests
